@@ -1,2 +1,2 @@
 # Part-level-Scene-Graph
-This is a test demo for JI ECE490
+Using CenterNet to detect parts. Adding another output head for Ralation Affinity Field, detecting relations between parts.
