@@ -17,15 +17,30 @@ def collate_fn(batch):
     return imgs, targets
 
 def train(num_epochs=10, batch_size=4, learning_rate=1e-4, num_classes=80,
-          img_size=(512, 512), output_stride=4, use_fpn=True, fpn_head_level='P3'):
+          img_size=(512, 512), use_fpn=True, fpn_head_level='P3'): # Removed output_stride from args
     
     # 1. Device setup
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
+    # Determine the correct output stride for the dataset based on model configuration
+    output_strides = {
+        'C5': 32, # ResNet50's C5 output stride
+        'P3': 8,
+        'P4': 16,
+        'P5': 32,
+        'P6': 64,
+        'P7': 128
+    }
+    
+    # If FPN is used, get stride from fpn_head_level. Otherwise, use C5 stride.
+    dataset_output_stride = output_strides.get(fpn_head_level if use_fpn else 'C5', 4) # Default to 4 if not found (shouldn't happen with valid levels)
+    print(f"Using dataset output stride: {dataset_output_stride} (derived from fpn_head_level='{fpn_head_level}' and use_fpn={use_fpn})")
+
     # 2. Dataset and DataLoader
     print("Loading dataset...")
-    dataset = CenterNetDataset(num_samples=100, img_size=img_size, num_classes=num_classes, output_stride=output_stride)
+    # Pass the dynamically determined output_stride to the dataset
+    dataset = CenterNetDataset(num_samples=100, img_size=img_size, num_classes=num_classes, output_stride=dataset_output_stride)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     print(f"Dataset loaded with {len(dataset)} samples.")
 
@@ -86,8 +101,8 @@ if __name__ == '__main__':
         learning_rate=1e-4, 
         num_classes=80, 
         img_size=(512, 512), 
-        output_stride=4, # Should match the output stride of the chosen FPN level or backbone
+        # output_stride is now determined dynamically within the train function
         use_fpn=True, 
-        fpn_head_level='P3' # Or 'C5' if use_fpn=False
+        fpn_head_level='P3' # Or 'C5' if use_fpn=False, or 'P4', 'P5', etc.
     )
 
